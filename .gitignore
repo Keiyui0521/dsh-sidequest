@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.tgz
+.env*
+sidequest.config.json
+*.log
+.DS_Store
