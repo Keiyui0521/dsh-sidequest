@@ -2,11 +2,8 @@ import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-const base = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+import { createRequire } from "node:module";
+const katexDist = path.dirname(createRequire(import.meta.url).resolve("katex"));
 export async function startEphemeralServer(adapter, { root } = {}) {
   const token = randomBytes(32).toString("hex"),
     active = new Set();
@@ -85,9 +82,7 @@ export async function startEphemeralServer(adapter, { root } = {}) {
           "Content-Type",
           name.endsWith(".css") ? "text/css" : "font/woff2",
         );
-        res.end(
-          await readFile(path.join(base, "node_modules/katex/dist", name)),
-        );
+        res.end(await readFile(path.join(katexDist, name)));
         return;
       }
       if (req.method !== "POST" || name !== "chat") {

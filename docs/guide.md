@@ -24,7 +24,7 @@
 npm ci
 npm test
 npm run format:check
-npm pack
+npm run test:package
 ```
 
 ```text
