@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidequest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Nested side conversations and interactive HTML charts for DeepSeek Harness.",
   "type": "module",
   "main": "index.js",
@@ -12,29 +12,28 @@
   },
   "exports": {
     ".": "./index.js",
-    "./client": "./client.js",
+    "./client": "./dist/client.js",
     "./package.json": "./package.json",
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "files": [
     "index.js",
-    "client.js",
-    "config.mjs",
-    "ephemeral-server.mjs",
-    "runtime/*.mjs",
-    "dist/vendor.js",
+    "src",
+    "dist",
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
     "THIRD_PARTY.md",
     "sidequest.config.example.json",
-    "README.zh-CN.md",
-    "docs/images"
+    "docs",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node config-test.mjs && node client-state-test.mjs && node ephemeral-test.mjs && node visualization-test.mjs",
-    "prepack": "npm run build"
+    "test": "npm run build && node --test tests/*test.mjs",
+    "prepack": "npm run build",
+    "format": "prettier --write src tests scripts index.js",
+    "format:check": "prettier --check src tests scripts index.js"
   },
   "dependencies": {
     "dompurify": "3.4.17",
@@ -42,7 +41,8 @@
     "marked": "18.2.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "prettier": "3.10.1"
   },
   "engines": {
     "node": ">=22"

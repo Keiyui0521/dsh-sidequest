@@ -1,4 +1,3 @@
 {
-  "workspace": "/absolute/path/to/your/workspace",
-  "codexBin": "codex"
+  "workspace": "/可选：用于读取已有HTML图表的目录"
 }
