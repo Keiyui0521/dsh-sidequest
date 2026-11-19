@@ -24,11 +24,11 @@
 ## 安装
 
 1. 在 DSH 中配置好要使用的模型。
-2. 下载并解压 [最新安装包](https://github.com/Keiyui0521/dsh-sidequest/releases)。
+2. 下载并解压 [最新安装包](https://github.com/Keiyui0521/dsh-sidequest/releases/latest)。
 3. 在 DSH「插件」中安装解压后的目录（`file:/绝对路径/package`），启用并重启。
 
 从旧版升级：先停用旧版，再安装新版。旧的本地模型连接配置不再使用。
 
 侧聊使用自己的模型下拉框；仅进行对话，不执行本地文件操作。关闭侧聊或重启后不保留记录。图表直接从回答中的 HTML 代码块生成，无需配置工作区。
 
-实验版：按 DSH `0.2.2-rc.3` 接口适配，其他版本尚未验证。截图为旧版实机演示，侧聊布局沿用。[详细说明](docs/guide.md) · [MIT](LICENSE)
+正式版 v0.2.0：已在 macOS / DSH `0.2.2-rc.3` 中使用 Gemini 4 Argon 实测侧聊与图表交互；其他版本尚未验证。截图为旧版实机演示，侧聊布局沿用。[详细说明](docs/guide.md) · [MIT](LICENSE)
