@@ -1,7 +1,12 @@
 import css from "./styles.css";
+import { createPreferences, installPreferences } from "./preferences.js";
+import { installMainEdit } from "./main-edit.js";
 import { createStore } from "./store.js";
 import { createRenderer } from "./render.js";
-import { createSessionReader } from "../adapters/dsh-client.js";
+import {
+  createSessionReader,
+  createSessionModelReader,
+} from "../adapters/dsh-client.js";
 window.__ModuleLoader__.load({
   id: "dsh-sidequest",
   factory: (require) => {
@@ -16,7 +21,10 @@ window.__ModuleLoader__.load({
         "uiWorkspace",
       ],
       apply(ctx) {
-        const store = createStore(createSessionReader(ctx));
+        const store = createStore(
+          createSessionReader(ctx),
+          createSessionModelReader(ctx),
+        );
         const { paths, subscribe, open, close, send, lastUser, emit } = store;
         const { Answer } = createRenderer(R, store.api);
         function Icon({ kind }) {
@@ -41,6 +49,15 @@ window.__ModuleLoader__.load({
                 ),
           );
         }
+        const preferences = createPreferences(window.localStorage);
+        installPreferences(ctx, R, preferences);
+        installMainEdit(
+          ctx,
+          R,
+          Icon,
+          require("react-dom").createPortal,
+          preferences,
+        );
         function Copy({ text }) {
           const [done, setDone] = R.useState(false);
           return h(
@@ -344,6 +361,20 @@ window.__ModuleLoader__.load({
                       emit();
                     },
                   },
+                  p.model &&
+                    !store.models.some((m) => m.id === p.model) &&
+                    h(
+                      "option",
+                      { value: p.model },
+                      "当前聊天模型 · " +
+                        (() => {
+                          try {
+                            return JSON.parse(p.model).join(" · ");
+                          } catch {
+                            return p.model;
+                          }
+                        })(),
+                    ),
                   ...store.models.map((m) =>
                     h("option", { key: m.id, value: m.id }, m.name),
                   ),

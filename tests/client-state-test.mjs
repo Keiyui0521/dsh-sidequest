@@ -92,9 +92,9 @@ assert.equal(aborted, true);
 assert.equal(rows[0].data.content[0].text, "PARENT_CONTEXT");
 assert.ok(
   !fs
-    .readFileSync(new URL("../dist/client.js", import.meta.url), "utf8")
+    .readFileSync(new URL("../src/client/store.js", import.meta.url), "utf8")
     .includes("localStorage."),
 );
 console.log(
-  "PASS native quote preservation, selected excerpt, hidden ancestor context, pane reuse, close abort/discard, no local persistence",
+  "PASS native quote preservation, selected excerpt, hidden ancestor context, pane reuse, close abort/discard, no conversation persistence",
 );

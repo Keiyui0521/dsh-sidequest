@@ -217,3 +217,129 @@
 .sidequest-tools {
   flex-wrap: wrap;
 }
+
+.sidequest-main-edit-action {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+.sidequest-main-edit-action button {
+  pointer-events: auto;
+  opacity: 0;
+  display: grid;
+  place-items: center;
+  width: calc(28px + var(--dsh-content-font-delta, 0px));
+  height: calc(28px + var(--dsh-content-font-delta, 0px));
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #888);
+  cursor: pointer;
+}
+.sidequest-main-question:hover .sidequest-main-edit-action button,
+.sidequest-main-question:focus-within .sidequest-main-edit-action button {
+  opacity: 1;
+}
+.sidequest-main-edit-action button:hover {
+  background: var(--dsw-alias-interactive-bg-hover, #8882);
+}
+.sidequest-main-editor {
+  margin: 8px 0 20px auto;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l, #8884);
+  border-radius: var(--dsw-radius-lg, 16px);
+  max-width: 760px;
+  color: inherit;
+  background: var(--dsw-alias-interactive-bg-hover, #8881);
+}
+.sidequest-main-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.6;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline-offset: 4px;
+}
+.sidequest-main-editor small {
+  display: block;
+  color: var(--dsw-alias-label-tertiary, #888);
+  margin: 8px 0;
+}
+.sidequest-main-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.sidequest-main-editor-actions button {
+  border: 1px solid var(--dsw-alias-border-l, #8884);
+  border-radius: var(--dsw-radius-md, 10px);
+  padding: 8px 14px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.sidequest-main-editor-actions .sidequest-main-save {
+  background: var(--dsw-alias-label-primary, #222);
+  color: var(--dsw-alias-bg-base, #fff);
+}
+.sidequest-main-editor button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sidequest-main-editor [role="alert"] {
+  color: #d64a4a;
+}
+
+.sidequest-settings {
+  color: var(--dsw-alias-label-primary);
+  padding: 8px 0;
+}
+.sidequest-settings h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 20px;
+}
+.sidequest-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  cursor: pointer;
+}
+.sidequest-setting-row input {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 22px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--dsw-alias-interactive-bg-hover-solid, #888);
+  cursor: pointer;
+  position: relative;
+}
+.sidequest-setting-row input::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.15s;
+}
+.sidequest-setting-row input:checked {
+  background: var(--dsw-alias-state-business-primary, #4d6bfe);
+}
+.sidequest-setting-row input:checked::after {
+  transform: translateX(14px);
+}
+.sidequest-settings p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-tertiary);
+}

@@ -1,4 +1,4 @@
-export function createStore(messages) {
+export function createStore(messages, currentModel = () => "") {
   const paths = new Map(),
     listeners = new Set();
   let revision = 0,
@@ -46,7 +46,7 @@ export function createStore(messages) {
       draft: "",
       attachments: [],
       uploading: 0,
-      model: parent?.model || models[0]?.id || "",
+      model: parent?.model || currentModel(root) || models[0]?.id || "",
       busy: false,
     });
     paths.set(root, a);

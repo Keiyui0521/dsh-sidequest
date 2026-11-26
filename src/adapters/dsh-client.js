@@ -22,3 +22,19 @@ export function createSessionReader(ctx) {
 
   return messages;
 }
+
+// Read the same projection as DSH's native composer, including a model switched
+// after the last reply. Do not infer the active model from message history.
+export function createSessionModelReader(ctx) {
+  return (id) => {
+    const projection = ctx.sessions.binding(id)?.session?.projections;
+    const state = projection?.faceOf("modelSelection").getSnapshot();
+    const selected = state?.next ?? state?.lastUsed;
+    return typeof selected?.provider === "string" &&
+      selected.provider &&
+      typeof selected?.model === "string" &&
+      selected.model
+      ? JSON.stringify([selected.provider, selected.model])
+      : "";
+  };
+}
