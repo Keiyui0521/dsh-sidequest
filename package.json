@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidequest",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Nested side conversations and interactive HTML charts for DeepSeek Harness.",
   "type": "module",
   "main": "index.js",
@@ -39,7 +39,9 @@
   "dependencies": {
     "dompurify": "3.4.17",
     "katex": "0.19.1",
-    "marked": "18.2.0"
+    "mammoth": "1.13.0",
+    "marked": "18.2.0",
+    "pdfjs-dist": "6.5.438"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

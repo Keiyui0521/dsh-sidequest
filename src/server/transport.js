@@ -1,10 +1,14 @@
+import { prepareAttachment } from "./attachments.js";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
 const katexDist = path.dirname(createRequire(import.meta.url).resolve("katex"));
-export async function startEphemeralServer(adapter, { root } = {}) {
+export async function startEphemeralServer(
+  adapter,
+  { root, attachments } = {},
+) {
   const token = randomBytes(32).toString("hex"),
     active = new Set();
   const server = createServer(async (req, res) => {
@@ -85,19 +89,28 @@ export async function startEphemeralServer(adapter, { root } = {}) {
         res.end(await readFile(path.join(katexDist, name)));
         return;
       }
-      if (req.method !== "POST" || name !== "chat") {
+      if (req.method !== "POST" || !["chat", "attachment"].includes(name)) {
         res.writeHead(404).end();
         return;
       }
       let raw = "";
       for await (const c of req) {
         raw += c;
-        if (raw.length > 2_000_000) {
+        if (
+          Buffer.byteLength(raw) >
+          (name === "attachment" ? 15_000_000 : 4_000_000)
+        ) {
           res.writeHead(413).end();
           return;
         }
       }
       const body = JSON.parse(raw);
+      if (name === "attachment") {
+        const result = await prepareAttachment(body, attachments);
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(result));
+        return;
+      }
       if (!Array.isArray(body.messages) || typeof body.route !== "string")
         throw Error("无效请求");
       const controller = new AbortController();

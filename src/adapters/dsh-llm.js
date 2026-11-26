@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 const SYSTEM = `你正在 DSH 的 SideQuest 侧聊中回答用户。结合祖先聊天内容回答最后一个问题，使用用户的语言。
-这里只提供文字对话，没有文件、命令或联网工具。不要声称已经读取或修改文件。
+你可以读取用户消息中的图片和已提取的附件文字；没有命令或联网工具。不要声称读过未提供的文件，PDF/DOCX 的提取文字不含原始版式或内嵌图片。
 需要交互图表时，直接返回一个完整的 html 围栏代码块，使用内联 CSS 和 JavaScript；界面会将它显示为交互预览。
 图表不能联网、访问父窗口或打开新窗口，不要依赖外部库。`;
 
@@ -30,6 +30,7 @@ export function createDshAdapter(llm) {
           models.push({
             id: JSON.stringify([provider.id, model.id]),
             name: `${provider.name} · ${model.name || model.id}`,
+            inputModalities: model.inputModalities,
           });
         }
       });
@@ -56,8 +57,16 @@ export function createDshAdapter(llm) {
         .filter((m) => m.role === "user" || m.role === "assistant")
         .flatMap((m) => {
           const content = (Array.isArray(m.content) ? m.content : [])
-            .filter((b) => b.type === "text" && typeof b.text === "string")
-            .map((b) => ({ type: "text", text: b.text }));
+            .filter(
+              (b) =>
+                (b.type === "text" && typeof b.text === "string") ||
+                (m.role === "user" && b.type === "image" && b.attachment),
+            )
+            .map((b) =>
+              b.type === "text"
+                ? { type: "text", text: b.text }
+                : { type: "image", attachment: b.attachment },
+            );
           return content.length
             ? [
                 {

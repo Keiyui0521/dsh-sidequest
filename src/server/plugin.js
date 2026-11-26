@@ -10,6 +10,7 @@ export async function apply(ctx) {
   const config = loadConfig();
   const transport = await startEphemeralServer(createDshAdapter(ctx.llm), {
     root: config.workspace,
+    attachments: ctx.get?.("attachments"),
   });
   ctx.on("dispose", () => transport.close());
   const vendor = readFileSync(

@@ -61,6 +61,30 @@ window.__ModuleLoader__.load({
             h(Icon, { kind: "copy" }),
           );
         }
+        function AttachmentChips({ items, remove }) {
+          return h(
+            "div",
+            { className: "sidequest-attachments" },
+            ...items.map((a, i) =>
+              h(
+                "div",
+                { key: i, className: "sidequest-attachment" },
+                a.preview && h("img", { src: a.preview, alt: a.name }),
+                h("span", null, a.name),
+                remove &&
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      "aria-label": "移除附件 " + a.name,
+                      onClick: () => remove(i),
+                    },
+                    "×",
+                  ),
+              ),
+            ),
+          );
+        }
         function Pane({ p, root, index }) {
           R.useSyncExternalStore(subscribe, store.snapshot);
           const [selected, setSelected] = R.useState(null);
@@ -142,8 +166,12 @@ window.__ModuleLoader__.load({
                   h(
                     "div",
                     { className: m.role === "user" ? "sidequest-user" : "" },
+                    m.attachments?.length > 0 &&
+                      h(AttachmentChips, { items: m.attachments }),
                     h(Answer, {
-                      text: m.content.map((b) => b.text || "").join("\n"),
+                      text:
+                        m.question ??
+                        m.content.map((b) => b.text || "").join("\n"),
                       interactive: m.role === "assistant",
                     }),
                   ),
@@ -162,9 +190,10 @@ window.__ModuleLoader__.load({
                             "aria-label": "编辑上一条提问",
                             disabled: p.busy,
                             onClick: () => {
-                              p.draft = m.content
-                                .map((b) => b.text || "")
-                                .join("\n");
+                              p.draft =
+                                m.question ??
+                                m.content.map((b) => b.text || "").join("\n");
+                              p.attachments = [...(m.attachments || [])];
                               p.messages = p.messages.slice(0, i);
                               p.quote = "";
                               close(root, index + 1);
@@ -217,7 +246,30 @@ window.__ModuleLoader__.load({
               ),
             h(
               "div",
-              { className: "sidequest-compose" },
+              {
+                className: "sidequest-compose",
+                onDragOver: (e) => {
+                  e.preventDefault();
+                },
+                onDrop: (e) => {
+                  e.preventDefault();
+                  store.addFiles(p, e.dataTransfer.files);
+                },
+              },
+              h(AttachmentChips, {
+                items: p.attachments || [],
+                remove: (i) => {
+                  p.attachments.splice(i, 1);
+                  emit();
+                },
+              }),
+              p.attachments?.length > 0 &&
+                h(
+                  "small",
+                  { className: "sidequest-hint" },
+                  "每条最多 4 个附件，单个 10 MB；PDF/Word 仅提取文字，图表请另附截图。",
+                ),
+              p.uploading > 0 && h("p", { role: "status" }, "正在读取附件…"),
               p.quote &&
                 h(
                   "blockquote",
@@ -237,7 +289,14 @@ window.__ModuleLoader__.load({
                 ),
               h("textarea", {
                 "aria-label": "侧聊 " + (index + 1) + " 提问",
-                placeholder: "针对选中的内容提问…",
+                placeholder: "输入问题，可粘贴图片或拖入文件…",
+                onPaste: (e) => {
+                  const files = Array.from(e.clipboardData.files || []);
+                  if (files.length) {
+                    e.preventDefault();
+                    store.addFiles(p, files);
+                  }
+                },
                 value: p.draft,
                 onChange: (e) => {
                   p.draft = e.target.value;
@@ -258,9 +317,27 @@ window.__ModuleLoader__.load({
                 "div",
                 { className: "sidequest-tools" },
                 h(
+                  "label",
+                  { className: "sidequest-upload" },
+                  "＋ 附件",
+                  h("input", {
+                    type: "file",
+                    multiple: true,
+                    disabled: p.busy || p.uploading > 0,
+                    "aria-label": "添加图片或文件",
+                    accept:
+                      "image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.js,.ts,.py,.html,.css,.xml,.yml,.yaml,.log,.tex",
+                    onChange: (e) => {
+                      store.addFiles(p, e.target.files);
+                      e.target.value = "";
+                    },
+                  }),
+                ),
+                h(
                   "select",
                   {
                     "aria-label": "侧聊模型",
+                    onFocus: () => store.loadModels(),
                     value: p.model,
                     onChange: (e) => {
                       p.model = e.target.value;
@@ -271,6 +348,16 @@ window.__ModuleLoader__.load({
                     h("option", { key: m.id, value: m.id }, m.name),
                   ),
                 ),
+                h(
+                  "button",
+                  {
+                    type: "button",
+                    "aria-label": "刷新侧聊模型列表",
+                    title: "同步 DSH 模型配置",
+                    onClick: () => store.loadModels(),
+                  },
+                  "刷新模型",
+                ),
                 p.busy
                   ? h(
                       "button",
@@ -280,7 +367,10 @@ window.__ModuleLoader__.load({
                   : h(
                       "button",
                       {
-                        disabled: !p.draft.trim() || !p.model,
+                        disabled:
+                          (!p.draft.trim() && !p.attachments?.length) ||
+                          !p.model ||
+                          p.uploading > 0,
                         onClick: () => send(p),
                       },
                       "发送",

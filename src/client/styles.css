@@ -179,3 +179,41 @@
   position: fixed;
   z-index: 10000;
 }
+
+.sidequest-attachments {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.sidequest-attachment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #8885;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.sidequest-attachment span {
+  overflow-wrap: anywhere;
+}
+.sidequest-attachment img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.sidequest-upload {
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.sidequest-upload input {
+  display: block;
+  max-width: 180px;
+  font-size: 11px;
+}
+.sidequest-tools {
+  flex-wrap: wrap;
+}

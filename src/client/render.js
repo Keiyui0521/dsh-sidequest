@@ -5,21 +5,28 @@ export function createRenderer(R, api) {
     if (!window.marked || !window.DOMPurify) return null;
     const maths = [];
     const source = text.replace(
-      /```[\s\S]*?```|`[^`\n]*`|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$/g,
+      /```[\s\S]*?```|`[^`\n]*`|\\\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?![\s$])(?:\\[^\n]|[^$\n\\])*?[^\s\\$]\$(?!\d)|\$[^\s$\\]\$(?!\d)/g,
       (m) =>
-        m.startsWith("`") ? m : "MATHPLACE" + (maths.push(m) - 1) + "END",
+        m.startsWith("`") || m === "\\$"
+          ? m
+          : "MATHPLACE" + (maths.push(m) - 1) + "END",
     );
     let out = window.DOMPurify.sanitize(window.marked.parse(source));
     return out.replace(/MATHPLACE(\d+)END/g, (_, i) => {
       const raw = maths[i],
         display = raw.startsWith("\\[") || raw.startsWith("$$");
       return window.katex
-        ? window.katex.renderToString(raw.slice(2, -2), {
-            displayMode: display,
-            throwOnError: false,
-            trust: false,
-            output: "htmlAndMathml",
-          })
+        ? window.katex.renderToString(
+            raw.startsWith("$") && !display
+              ? raw.slice(1, -1)
+              : raw.slice(2, -2),
+            {
+              displayMode: display,
+              throwOnError: false,
+              trust: false,
+              output: "htmlAndMathml",
+            },
+          )
         : window.DOMPurify.sanitize(raw);
     });
   }
