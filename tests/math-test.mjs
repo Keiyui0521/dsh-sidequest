@@ -37,3 +37,21 @@ assert.equal((render("$x$ 和 $y$").match(/class="katex"/g) || []).length, 2);
 console.log(
   "PASS inline/display math, bold text, code, escaped dollars, prices and incomplete streams",
 );
+
+// Escaped closing braces must be consumed as part of the formula, not lost
+// to the old regex's mandatory unescaped final character.
+for (const tex of [
+  String.raw`I - \{c\}`,
+  String.raw`X = \mathbb{R} - \{0\}`,
+  String.raw`I - \{c\} \subseteq X = \mathbb{R} - \{0\}`,
+]) {
+  for (const text of [
+    `$${tex}$`,
+    `**核心结论：$${tex}$**`,
+    `> The domain is $${tex}$.`,
+    `错误：$${tex}$（写反了）`,
+  ]) {
+    assert.match(render(text), /class="katex"/, text);
+    assert.doesNotMatch(render(text), /katex-error/, text);
+  }
+}

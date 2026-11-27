@@ -1,3 +1,4 @@
+import { createNativeSessions } from "../adapters/dsh-session.js";
 import css from "./styles.css";
 import { createPreferences, installPreferences } from "./preferences.js";
 import { installMainEdit } from "./main-edit.js";
@@ -19,11 +20,15 @@ window.__ModuleLoader__.load({
         "uiConversation",
         "conversation",
         "uiWorkspace",
+        "uiSession",
+        "remote",
+        "remote.session",
       ],
       apply(ctx) {
         const store = createStore(
           createSessionReader(ctx),
           createSessionModelReader(ctx),
+          createNativeSessions(ctx),
         );
         const { paths, subscribe, open, close, send, lastUser, emit } = store;
         const { Answer } = createRenderer(R, store.api);
@@ -170,7 +175,7 @@ window.__ModuleLoader__.load({
                 h(
                   "p",
                   { className: "sidequest-hint" },
-                  "已带入父级上下文。这里只显示本次侧聊。关闭后不保留。",
+                  "已带入父级上下文。普通侧聊不保存；需要访问本地文件、执行命令或申请权限时，先征求你的确认。",
                 ),
               ...p.messages.map((m, i) =>
                 h(
@@ -200,17 +205,19 @@ window.__ModuleLoader__.load({
                         text: m.content.map((b) => b.text || "").join("\n"),
                       }),
                       i === lastUser(p.messages) &&
+                        (!p.native || m.seq != null) &&
                         h(
                           "button",
                           {
                             title: "编辑上一条提问",
                             "aria-label": "编辑上一条提问",
-                            disabled: p.busy,
+                            disabled: p.busy || !!p.proposal,
                             onClick: () => {
                               p.draft =
                                 m.question ??
                                 m.content.map((b) => b.text || "").join("\n");
                               p.attachments = [...(m.attachments || [])];
+                              p.rewindSeq = m.seq;
                               p.messages = p.messages.slice(0, i);
                               p.quote = "";
                               close(root, index + 1);
@@ -222,6 +229,123 @@ window.__ModuleLoader__.load({
                     ),
                 ),
               ),
+              p.permission &&
+                h(
+                  "p",
+                  { className: "sidequest-hint" },
+                  "访问模式：" + p.permission + " · 发送时同步主聊天",
+                ),
+              p.tools?.length > 0 &&
+                h(
+                  "details",
+                  { className: "sidequest-tools" },
+                  h("summary", null, "工具操作（" + p.tools.length + "）"),
+                  ...p.tools.map((t, i) =>
+                    h("pre", { key: i }, JSON.stringify(t.data, null, 2)),
+                  ),
+                ),
+              h(
+                "p",
+                { className: "sidequest-hint" },
+                p.sessionId
+                  ? "已保存为 DSH 分支 · 关闭侧栏后仍可找回"
+                  : "临时侧聊 · 关闭后不保留对话",
+              ),
+              p.proposal &&
+                h(
+                  "div",
+                  {
+                    className: "sidequest-approval",
+                    role: "group",
+                    "aria-label": "保存分支确认",
+                  },
+                  h("strong", null, "保存为分支并继续？"),
+                  h("p", null, p.proposal.reason),
+                  h("pre", null, p.proposal.task),
+                  h(
+                    "p",
+                    null,
+                    "批准后会保存当前侧聊内容，并使用主聊天的访问权限。DSH 要求的操作审批仍需单独确认。",
+                  ),
+                  h(
+                    "button",
+                    {
+                      disabled: p.busy,
+                      onClick: () => store.decidePromotion(p, false),
+                    },
+                    "拒绝并保持临时",
+                  ),
+                  h(
+                    "button",
+                    {
+                      disabled: p.busy,
+                      onClick: () => store.decidePromotion(p, true),
+                    },
+                    "批准并保存分支",
+                  ),
+                ),
+              p.pending &&
+                h(
+                  "div",
+                  {
+                    className: "sidequest-approval",
+                    role: "group",
+                    "aria-label": "侧聊权限审批",
+                  },
+                  h("strong", null, "等待你的确认"),
+                  h(
+                    "p",
+                    null,
+                    p.pending.reason || p.pending.toolName || "DSH 请求交互",
+                  ),
+                  h(
+                    "pre",
+                    null,
+                    p.tools?.find(
+                      (t) =>
+                        t.type === "tool/call" &&
+                        t.data.callId === p.pending.callId,
+                    )?.data.arguments || "",
+                  ),
+                  p.pending.kind === "approval"
+                    ? h(
+                        "div",
+                        null,
+                        ...[
+                          ["拒绝", "rejected"],
+                          ["允许一次", "allowed-once"],
+                        ].map(([label, outcome]) =>
+                          h(
+                            "button",
+                            {
+                              key: outcome,
+                              disabled: p.answering,
+                              onClick: async () => {
+                                p.answering = true;
+                                emit();
+                                try {
+                                  await store.native.answer(p, outcome);
+                                } catch (e) {
+                                  p.error = e.message;
+                                } finally {
+                                  p.answering = false;
+                                  emit();
+                                }
+                              },
+                            },
+                            label,
+                          ),
+                        ),
+                      )
+                    : h(
+                        "button",
+                        {
+                          onClick: () =>
+                            ctx.uiWorkspace.openSession(p.sessionId),
+                        },
+                        "在主窗口处理此请求",
+                      ),
+                ),
               store.modelError && h("p", { role: "alert" }, store.modelError),
               p.busy && h("p", { role: "status" }, "正在思考 / 回答…"),
               p.error && h("p", { role: "alert" }, p.error),
@@ -401,7 +525,8 @@ window.__ModuleLoader__.load({
                         disabled:
                           (!p.draft.trim() && !p.attachments?.length) ||
                           !p.model ||
-                          p.uploading > 0,
+                          p.uploading > 0 ||
+                          !!p.proposal,
                         onClick: () => send(p),
                       },
                       "发送",

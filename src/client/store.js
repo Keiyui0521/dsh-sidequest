@@ -1,4 +1,4 @@
-export function createStore(messages, currentModel = () => "") {
+export function createStore(messages, currentModel = () => "", native = null) {
   const paths = new Map(),
     listeners = new Set();
   let revision = 0,
@@ -19,9 +19,24 @@ export function createStore(messages, currentModel = () => "") {
     return u;
   };
   const textMsg = (role, text) => ({ role, content: [{ type: "text", text }] });
-  function close(root, i) {
+  async function close(root, i) {
     const a = paths.get(root) || [];
-    for (const p of a.slice(i)) p.controller?.abort();
+    for (const p of a.slice(i)) {
+      if (p.native || p.admission) {
+        try {
+          await native.close(p);
+        } catch (e) {
+          p.closed = false;
+          p.error = e.message;
+          emit();
+          return;
+        }
+      } else {
+        p.closed = true;
+        p.controller?.abort();
+        p.proposal = null;
+      }
+    }
     paths.set(root, a.slice(0, i));
     emit();
   }
@@ -40,6 +55,8 @@ export function createStore(messages, currentModel = () => "") {
     }
     a.push({
       id: crypto.randomUUID(),
+      root,
+      parent,
       context: structuredClone(inherited),
       quote,
       messages: [],
@@ -58,7 +75,12 @@ export function createStore(messages, currentModel = () => "") {
     return -1;
   }
   async function send(p) {
-    if (p.busy || p.uploading || (!p.draft.trim() && !p.attachments?.length))
+    if (
+      p.busy ||
+      p.proposal ||
+      p.uploading ||
+      (!p.draft.trim() && !p.attachments?.length)
+    )
       return;
     const question = p.draft || "请分析附件内容";
     const attached = p.attachments || [];
@@ -84,12 +106,16 @@ export function createStore(messages, currentModel = () => "") {
     user.attachments = attached;
     user.question = user.content[0].text;
     p.messages.push(user);
-    p.messages.push(textMsg("assistant", ""));
+    if (!p.native) p.messages.push(textMsg("assistant", ""));
     p.busy = true;
     p.error = "";
     p.controller = new AbortController();
     emit();
     try {
+      if (p.native) {
+        await native.send(p, user, emit);
+        return;
+      }
       const response = await fetch(api() + "chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,6 +145,10 @@ export function createStore(messages, currentModel = () => "") {
           if (!line) continue;
           const e = JSON.parse(line);
           if (e.error) throw Error(e.error);
+          if (e.type === "branch-approval" && !p.closed) {
+            p.proposal = { ...e.proposal, id: crypto.randomUUID() };
+            emit();
+          }
           if (e.type === "text-delta") {
             p.messages.at(-1).content[0].text += e.text;
             emit();
@@ -127,6 +157,57 @@ export function createStore(messages, currentModel = () => "") {
       }
     } catch (e) {
       if (e.name !== "AbortError") p.error = e.message;
+    } finally {
+      p.busy = false;
+      p.controller = null;
+      emit();
+    }
+  }
+
+  async function decidePromotion(p, approved) {
+    if (!p.proposal || p.busy || p.closed) return;
+    const proposal = p.proposal;
+    p.proposal = null;
+    if (!approved) {
+      p.messages.push(textMsg("assistant", "已拒绝：未保存分支，未执行操作。"));
+      emit();
+      return;
+    }
+    p.approved = true;
+    p.busy = true;
+    p.error = "";
+    p.frozenHistory = structuredClone(
+      p.messages.filter((m) =>
+        m.content.some((b) => b.type !== "text" || b.text.trim()),
+      ),
+    );
+    const transcript = [...p.context, ...p.frozenHistory]
+      .map(
+        (m) =>
+          `${m.role === "user" ? "用户" : "助手"}：\n${m.content
+            .filter((b) => b.type === "text")
+            .map((b) => b.text)
+            .join("\n")}`,
+      )
+      .join("\n\n");
+    p.migrationText =
+      "以下是临时侧聊的上下文记录，仅供理解，不要重新执行历史请求：\n" +
+      transcript +
+      "\n\n用户刚刚批准保存为分支并处理以下任务（仍须遵循 DSH 的权限审批）：\n" +
+      proposal.task;
+    const user = textMsg("user", p.migrationText);
+    user.content.push(
+      ...[...p.context, ...p.frozenHistory].flatMap((m) =>
+        m.content.filter((b) => b.type === "image"),
+      ),
+    );
+    emit();
+    try {
+      if (!native) throw Error("当前 DSH 不支持创建分支，未执行操作");
+      await native.send(p, user, emit);
+    } catch (e) {
+      p.error = e.message;
+      // Never automatically retry a task: prompt admission may already have occurred.
     } finally {
       p.busy = false;
       p.controller = null;
@@ -204,10 +285,12 @@ export function createStore(messages, currentModel = () => "") {
     open,
     close,
     send,
+    decidePromotion,
     lastUser,
     emit,
     loadModels,
     addFiles,
+    native,
     get models() {
       return models;
     },

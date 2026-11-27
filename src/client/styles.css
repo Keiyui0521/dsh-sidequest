@@ -343,3 +343,29 @@
   line-height: 1.6;
   color: var(--dsw-alias-label-tertiary);
 }
+
+.sidequest-approval {
+  padding: 14px;
+  border: 1px solid #ba923c;
+  border-radius: 12px;
+  background: color-mix(in srgb, #ba923c 10%, transparent);
+  margin: 12px 0;
+}
+.sidequest-approval button {
+  margin: 6px;
+}
+.sidequest-tools pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.sidequest-approval pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 12px;
+}

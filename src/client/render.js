@@ -5,7 +5,7 @@ export function createRenderer(R, api) {
     if (!window.marked || !window.DOMPurify) return null;
     const maths = [];
     const source = text.replace(
-      /```[\s\S]*?```|`[^`\n]*`|\\\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?![\s$])(?:\\[^\n]|[^$\n\\])*?[^\s\\$]\$(?!\d)|\$[^\s$\\]\$(?!\d)/g,
+      /```[\s\S]*?```|`[^`\n]*`|\\\$|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?![\s$])(?:\\[^\n]|[^$\n\\])*?(?<![\s\\])\$(?!\d)/g,
       (m) =>
         m.startsWith("`") || m === "\\$"
           ? m

@@ -55,7 +55,10 @@ try {
   assert.equal(received.maxTokens, 4096);
   assert.equal(received.messages.length, 3);
   assert.equal(received.messages[1].content.length, 1);
-  assert.equal(received.tools, undefined);
+  assert.deepEqual(
+    received.tools.map((t) => t.name),
+    ["request_branch_approval"],
+  );
   assert.match(received.system, /html/);
   await assert.rejects(async () => {
     for await (const c of adapter.stream({ route: "bad", messages: [] })) {

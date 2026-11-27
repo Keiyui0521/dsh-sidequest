@@ -80,13 +80,18 @@ assert.equal(main().children.length, 2);
 assert.equal(main().children[1].props.p.id, id);
 assert.equal(main().children[1].props.p.quote, "SECOND_SELECTION");
 let aborted = false;
-pane.props.p.controller = {
-  abort() {
-    aborted = true;
+pane.props.p.busy = true;
+pane.props.p.native = {
+  session: {
+    cancel: async () => {
+      aborted = true;
+      return { ok: true };
+    },
   },
+  dispose() {},
 };
 const rendered = pane.type(pane.props);
-rendered.children[0].children[1].props.onClick();
+await rendered.children[0].children[1].props.onClick();
 assert.equal(main().children.length, 1);
 assert.equal(aborted, true);
 assert.equal(rows[0].data.content[0].text, "PARENT_CONTEXT");

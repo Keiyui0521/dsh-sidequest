@@ -1,6 +1,6 @@
 {
   "name": "dsh-sidequest",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Nested side conversations and interactive HTML charts for DeepSeek Harness.",
   "type": "module",
   "main": "index.js",
